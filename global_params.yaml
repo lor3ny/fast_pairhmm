@@ -1,0 +1,11 @@
+# Textbook global pair HMM parameters (Durbin et al., ch. 4).
+# transition[from][to] -- rows must sum to 1. I->D and D->I are forbidden
+# and simply omitted.
+transition:
+  M: {M: 0.8, I: 0.1, D: 0.1}
+  I: {M: 0.9, I: 0.1}
+  D: {M: 0.9, D: 0.1}
+
+emission:
+  match: 0.9   # p(read base == haplotype base); mismatches split the rest evenly
+  gap: 1.0     # emission probability for a gap (I or D state)

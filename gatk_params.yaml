@@ -1,0 +1,6 @@
+# GATK HaplotypeCaller pair HMM parameters, in Phred units.
+# base_q, ins_q, del_q are applied uniformly to every read position.
+base_q: 30   # per-read-base substitution quality
+ins_q: 45    # per-base insertion-open quality
+del_q: 45    # per-base deletion-open quality
+gcp: 10      # gap continuation penalty (t_II = t_DD = 10^(-gcp/10))
