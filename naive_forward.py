@@ -147,23 +147,36 @@ class PairHMM:
         #! DP INDUCTION
         for i in range(m + 1):
             for j in range(n + 1):
+
+                #! Skip the first step, already initialized above to be MATCH
                 if i == 0 and j == 0:
                     continue
+
+                #! Induction step, we compute the probability of a MATCH, given Xi for every Yj
                 if i > 0 and j > 0:
                     e_m = p_match if read[i - 1] == hap[j - 1] else p_mismatch
+
+                    #* Mij = match probability * (sum of all ways to get to Mij from previous states)
+                    #* transition from M to M, I to M, D to M. Considering the previous states probability (i-1, j-1).
                     M[i][j] = e_m * (
                         T["M"]["M"] * M[i - 1][j - 1]
                         + T["I"]["M"] * I[i - 1][j - 1]
                         + T["D"]["M"] * D[i - 1][j - 1]
                     )
+
+                #! Induction step, we compute the probability of an INSERTION, given Xi for every Yj
                 if i > 0:
                     I[i][j] = gap_emit * (
                         T["M"]["I"] * M[i - 1][j] + T["I"]["I"] * I[i - 1][j]
                     )
+
+                #! Induction step, we compute the probability of a DELETION, given Xi for every Yj
                 if j > 0:
                     D[i][j] = gap_emit * (
                         T["M"]["D"] * M[i][j - 1] + T["D"]["D"] * D[i][j - 1]
                     )
+
+
         total = M[m][n] + I[m][n] + D[m][n]
         return total, M, I, D
 
@@ -207,7 +220,7 @@ class PairHMM:
                 I[i][j] = T["M"]["I"] * M[i - 1][j] + T["I"]["I"] * I[i - 1][j]
                 D[i][j] = T["M"]["D"] * M[i][j - 1] + T["D"]["D"] * D[i][j - 1]
 
-        #! RETURNS SOMETHING (?)
+        #! I don't understand why it returns the SUM.
         # free exit: sum across the whole last row
         total = sum(M[m][j] + I[m][j] for j in range(1, n + 1))
         return log10(total) - log10(INITIAL_CONSTANT), M, I, D
