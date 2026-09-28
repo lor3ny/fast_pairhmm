@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end GATK HaplotypeCaller demo on synthetic data, plus a check of
-# gatk_forward() in naive_forward.py against GATK's own PairHMM
+# gatk_forward() in fast_forward.py against GATK's own PairHMM
 # (done by compare_with_gatk.py).
 # Requires: gatk, bwa, samtools (all on PATH),
 #           python3 with PyYAML (Fedora: sudo dnf install python3-pyyaml)
@@ -19,14 +19,15 @@ OUT="output"
 
 
 
-## ------ CHECKS ------
-for script in "$DATA/simulate_reads.py" naive_forward.py compare_with_gatk.py; do
+#! CHECKS
+for script in "$DATA/simulate_reads.py" fast_forward.py compare_with_gatk.py; do
   [[ -f "$script" ]] || { printf "ERROR: $script not found\n" >&2; exit 1; }
 done
 mkdir -p "$DATA" "$INTER" "$OUT"
-## ------ CHECKS ------
+#! CHECKS
 
 
+#! PREPARING INPUT FOR VARIANT CALLING: SYNTETHETIC DATA GENERATION, ALIGNEMENT, INDEXING, SORTING
 
 printf "=================== 1. Simulate reference + reads into $DATA/ ===================\n"
 # The Python script writes to the current directory, so run it from inside $DATA
@@ -86,6 +87,7 @@ printf "\n\n\n"
 # printf "\n\n\n"
 
 
+#! JAVA GATK FORWARD
 
 printf "=================== 7. HaplotypeCaller debug run: dump every PairHMM input and result ===================\n"
 # Default: the whole 20 kb genome (~2,600 read/haplotype pairs, a few seconds
@@ -104,13 +106,16 @@ gatk HaplotypeCaller -R "$REF" -I "$INTER/sample1.bam" \
 printf "\n\n\n"
 
 
+#! CUSTOM FAST FORWARD
 
 printf "=================== 8. Recompute every PairHMM likelihood with gatk_forward() ===================\n"
-python3 naive_forward.py --dump "$INTER/pairhmm_dump.txt" \
+python3 fast_forward.py --dump "$INTER/pairhmm_dump.txt" \
     --out "$OUT/pairhmm_ours.tsv"
 printf "\n\n\n"
 
 
+
+#! COMPARE
 
 printf "=================== 9. Compare our likelihoods with GATK's ===================\n"
 status=0

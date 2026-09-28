@@ -1,20 +1,3 @@
-"""
-Compare the likelihoods computed by naive_forward.py with GATK's own.
-
-Two separate phases:
-
-  1. python3 naive_forward.py --dump pairhmm_dump.txt --out ours.tsv
-         runs gatk_forward() on every read/haplotype pair of the dump.
-
-  2. python3 compare_with_gatk.py pairhmm_dump.txt ours.tsv --out comparison.tsv
-         reads GATK's value for each pair from the dump and ours from
-         ours.tsv, and reports the differences (see compare_with_gatk()).
-
-The dump (from `gatk HaplotypeCaller --pair-hmm-results-file`) holds one
-line per read/haplotype pair: the exact bases and per-base qualities GATK
-fed to its PairHMM, plus GATK's result.
-"""
-
 import argparse
 import sys
 
@@ -46,7 +29,7 @@ def read_gatk_results(path):
 
 
 def read_our_results(path):
-    """Read the TSV written by `naive_forward.py --dump ... --out ...`.
+    """Read the TSV written by `fast_forward.py --dump ... --out ...`.
     Yields (dump_line, read_len, hap_len, log10_likelihood)."""
     with open(path) as f:
         next(f)  # header
@@ -117,12 +100,12 @@ def compare_with_gatk(dump_path, ours_path, out_path=None, rel_tol=1e-6):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Compare the likelihoods written by naive_forward.py --dump "
+        description="Compare the likelihoods written by fast_forward.py --dump "
                     "with GATK's own values from the same PairHMM dump.")
     parser.add_argument("dump",
                         help="file written by gatk HaplotypeCaller --pair-hmm-results-file")
     parser.add_argument("ours",
-                        help="TSV written by naive_forward.py --dump DUMP --out TSV")
+                        help="TSV written by fast_forward.py --dump DUMP --out TSV")
     parser.add_argument("--out", metavar="TSV",
                         help="write the per-pair comparison table here")
     parser.add_argument("--tol", type=float, default=1e-6,
