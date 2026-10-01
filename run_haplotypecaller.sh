@@ -102,15 +102,25 @@ printf "Regions: ${PAIRHMM_REGIONS:-whole genome}"
 gatk HaplotypeCaller -R "$REF" -I "$INTER/sample1.bam" \
     -O "$INTER/pairhmm_debug.vcf.gz" ${L_ARGS[@]+"${L_ARGS[@]}"} \
     --pair-hmm-implementation LOGLESS_CACHING \
-    --pair-hmm-results-file "$INTER/pairhmm_dump.txt"
+    --pair-hmm-results-file "$INTER/pairhmm_dump.txt" 2>&1 \
+  | tee "$INTER/hc_pairhmm.log"
 printf "\n\n\n"
 
 
 #! CUSTOM FAST FORWARD
 
 printf "=================== 8. Recompute every PairHMM likelihood with gatk_forward() ===================\n"
-python3 fast_forward.py --dump "$INTER/pairhmm_dump.txt" \
-    --out "$OUT/pairhmm_ours.tsv"
+python3 fast_forward.py --dump "$INTER/pairhmm_dump.txt" --out "$OUT/pairhmm_ours.tsv"
+printf "\n\n\n"
+
+
+
+#! TIMING
+
+printf "=================== Forward-only compute time: GATK vs gatk_forward() ===================\n"
+# GATK's own PairHMM timer, logged at the end of the step 7 run
+grep "PairHMM computeLogLikelihoods" "$INTER/hc_pairhmm.log" || printf "GATK PairHMM time not found in log\n"
+# gatk_forward() time is printed by step 8 above
 printf "\n\n\n"
 
 
@@ -119,8 +129,7 @@ printf "\n\n\n"
 
 printf "=================== 9. Compare our likelihoods with GATK's ===================\n"
 status=0
-python3 compare_with_gatk.py "$INTER/pairhmm_dump.txt" "$OUT/pairhmm_ours.tsv" \
-    --out "$OUT/pairhmm_comparison.tsv" || status=$?
+python3 compare_with_gatk.py "$INTER/pairhmm_dump.txt" "$OUT/pairhmm_ours.tsv" --out "$OUT/pairhmm_comparison.tsv" || status=$?
 printf "\n\n\n"
 
 

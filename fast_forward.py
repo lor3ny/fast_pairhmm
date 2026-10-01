@@ -1,6 +1,7 @@
 import argparse
 from math import log10
 from pathlib import Path
+import time
 import yaml
 
 DEFAULT_GATK_PARAMS = Path(__file__).resolve().parent / "gatk_params.yaml"
@@ -112,11 +113,13 @@ class PairHMM:
                 y = hap[j - 1]
                 # Like GATK, an N in either sequence counts as a match.
                 e_m = (1.0 - e) if (x == y or x == "N" or y == "N") else e / 3.0
+
                 M[i][j] = e_m * (
                     T["M"]["M"] * M[i - 1][j - 1]
                     + T["I"]["M"] * I[i - 1][j - 1]
                     + T["D"]["M"] * D[i - 1][j - 1]
                 )
+                
                 I[i][j] = T["M"]["I"] * M[i - 1][j] + T["I"]["I"] * I[i - 1][j]
                 D[i][j] = T["M"]["D"] * M[i][j - 1] + T["D"]["D"] * D[i][j - 1]
 
@@ -140,17 +143,7 @@ def _fastq_to_phred(qual_string):
 
 #! LEGGE LE READS E LE CONVERTE A QUANTO PARE.
 def read_pairhmm_inputs(path):
-    """Parse the inputs of the file written by
-    `gatk HaplotypeCaller --pair-hmm-results-file`.
 
-    GATK writes one header line,
-        # hap-bases read-bases read-qual read-ins-qual read-del-qual gcp expected-result
-    then one line per read/haplotype pair with those 7 space-separated
-    fields: the haplotype, the read (already trimmed by GATK) and four
-    FASTQ-encoded per-base quality strings. GATK's own result (last
-    field) is ignored here; compare_with_gatk.py reads it.
-
-    Yields (line_number, read, hap, quals)."""
     with open(path) as f:
         for line_no, line in enumerate(f, start=1):
             line = line.strip()
@@ -167,15 +160,20 @@ def read_pairhmm_inputs(path):
 def run_on_dump(dump_path, out_path):
 
     n_pairs = 0
+    forward_time = 0.0  # seconds spent inside gatk_forward() only
     with open(out_path, "w") as f:
         f.write("dump_line\tread_len\thap_len\tlog10_likelihood\n")
         for k, (line_no, read, hap, quals) in enumerate(read_pairhmm_inputs(dump_path)):
 
-            ll, _, _, _ = PairHMM(read, hap, quals=quals).gatk_forward()
+            hmm = PairHMM(read, hap, quals=quals)  # parameter setup, not timed
+            start = time.perf_counter()
+            ll, _, _, _ = hmm.gatk_forward()
+            forward_time += time.perf_counter() - start
             f.write(f"{line_no}\t{len(read)}\t{len(hap)}\t{ll!r}\n")
             n_pairs += 1
 
     print(f"gatk_forward(): {n_pairs} read/haplotype pairs from {dump_path} -> {out_path}")
+    print(f"Total compute time in gatk_forward(): {forward_time:.6f} s")
 
 
 
